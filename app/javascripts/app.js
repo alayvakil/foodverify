@@ -6,27 +6,23 @@ import { default as Web3} from 'web3';
 import { default as contract } from 'truffle-contract'
 
 // Import our contract artifacts and turn them into usable abstractions.
-import metacoin_artifacts from '../../build/contracts/MetaCoin.json'
+import provenfood_artifacts from '../../build/contracts/ProvenFood.json'
 
 // MetaCoin is our usable abstraction, which we'll use through the code below.
-var MetaCoin = contract(metacoin_artifacts);
+var ProvenFood = contract(provenfood_artifacts);
 
 // The following code is simple to show off interacting with your contracts.
 // As your needs grow you will likely need to change its form and structure.
 // For application bootstrapping, check out window.addEventListener below.
 var accounts;
 var account;
-var foodAuditabi;
-var foodAuditContract;
-var foodAuditCode;
-var foodAuditCompileOP;
 
 window.App = {
   start: function() {
     var self = this;
 
     // Bootstrap the MetaCoin abstraction for Use.
-    MetaCoin.setProvider(web3.currentProvider);
+    ProvenFood.setProvider(web3.currentProvider);
 
     // Get the initial account balance so it can be displayed.
     web3.eth.getAccounts(function(err, accs) {
@@ -42,74 +38,22 @@ window.App = {
 
       accounts = accs;
       account = accounts[0];
-      web3.eth.defaultAccount = account;
+      console.log("account");
+      console.log(accounts);
 
-      
-      var foodAuditSrc = "pragma solidity ^0.4.4;  contract FoodAudit {      struct Entry {          string name;         uint EntryId;         uint TimeStamp;         uint LastEntryId;      }      mapping(uint => Entry) History;     uint8 Count = 0;      function NewEntry(string Name , uint EntryId){          Entry memory newEntry;         newEntry.name = Name;         newEntry.EntryId = EntryId;         newEntry.TimeStamp = now;          if ( Count != 0 ){             newEntry.LastEntryId = History[Count].EntryId;         }          History[Count] = newEntry;         Count = Count + 1;      }      function getEntry(uint8 EntryNum) returns (string,uint,uint,uint){          return (History[EntryNum].name,History[EntryNum].EntryId,History[EntryNum].LastEntryId,History[EntryNum].TimeStamp);      }      function getCount() returns (uint8) {          return Count;     }  }";
-
-      web3.eth.compile.solidity(foodAuditSrc,function(error,foodAuditCompileOP){
-
-        foodAuditabi = foodAuditCompileOP['<stdin>:FoodAudit'].info.abiDefinition;
-        foodAuditContract = web3.eth.contract(foodAuditabi);
-        foodAuditCode = foodAuditCompileOP['<stdin>:FoodAudit'].code;
-
-      })
-
-
-      self.refreshBalance();
+      console.log("start log");
+      self.check();
     });
   },
 
-  createContract: function(){
+  check: function(){
 
-    foodAuditContract.new("",{from:account,data:foodAuditCode,gas:30000},function(error,deployedContract){
-      if(deployedContract.address){
-        document.getElementById("contractAddress").value=deployedContract.address;
-      }
+    var meta;
+    ProvenFood.deployed().then(function(deployed){
+      meta = deployed;
+      console.log(meta.getHistory("abcd"));
     })
 
-  },
-
-  setStatus: function(message) {
-    var status = document.getElementById("status");
-    status.innerHTML = message;
-  },
-
-  refreshBalance: function() {
-    var self = this;
-
-    var meta;
-    MetaCoin.deployed().then(function(instance) {
-      meta = instance;
-      return meta.getBalance.call(account, {from: account});
-    }).then(function(value) {
-      var balance_element = document.getElementById("balance");
-      balance_element.innerHTML = value.valueOf();
-    }).catch(function(e) {
-      console.log(e);
-      self.setStatus("Error getting balance; see log.");
-    });
-  },
-
-  sendCoin: function() {
-    var self = this;
-
-    var amount = parseInt(document.getElementById("amount").value);
-    var receiver = document.getElementById("receiver").value;
-
-    this.setStatus("Initiating transaction... (please wait)");
-
-    var meta;
-    MetaCoin.deployed().then(function(instance) {
-      meta = instance;
-      return meta.sendCoin(receiver, amount, {from: account});
-    }).then(function() {
-      self.setStatus("Transaction complete!");
-      self.refreshBalance();
-    }).catch(function(e) {
-      console.log(e);
-      self.setStatus("Error sending coin; see log.");
-    });
   }
 };
 
