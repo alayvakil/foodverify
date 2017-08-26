@@ -16,6 +16,10 @@ var MetaCoin = contract(metacoin_artifacts);
 // For application bootstrapping, check out window.addEventListener below.
 var accounts;
 var account;
+var foodAuditabi;
+var foodAuditContract;
+var foodAuditCode;
+var foodAuditCompileOP;
 
 window.App = {
   start: function() {
@@ -38,9 +42,32 @@ window.App = {
 
       accounts = accs;
       account = accounts[0];
+      web3.eth.defaultAccount = account;
+
+      
+      var foodAuditSrc = "pragma solidity ^0.4.4;  contract FoodAudit {      struct Entry {          string name;         uint EntryId;         uint TimeStamp;         uint LastEntryId;      }      mapping(uint => Entry) History;     uint8 Count = 0;      function NewEntry(string Name , uint EntryId){          Entry memory newEntry;         newEntry.name = Name;         newEntry.EntryId = EntryId;         newEntry.TimeStamp = now;          if ( Count != 0 ){             newEntry.LastEntryId = History[Count].EntryId;         }          History[Count] = newEntry;         Count = Count + 1;      }      function getEntry(uint8 EntryNum) returns (string,uint,uint,uint){          return (History[EntryNum].name,History[EntryNum].EntryId,History[EntryNum].LastEntryId,History[EntryNum].TimeStamp);      }      function getCount() returns (uint8) {          return Count;     }  }";
+
+      web3.eth.compile.solidity(foodAuditSrc,function(error,foodAuditCompileOP){
+
+        foodAuditabi = foodAuditCompileOP['<stdin>:FoodAudit'].info.abiDefinition;
+        foodAuditContract = web3.eth.contract(foodAuditabi);
+        foodAuditCode = foodAuditCompileOP['<stdin>:FoodAudit'].code;
+
+      })
+
 
       self.refreshBalance();
     });
+  },
+
+  createContract: function(){
+
+    foodAuditContract.new("",{from:account,data:foodAuditCode,gas:30000},function(error,deployedContract){
+      if(deployedContract.address){
+        document.getElementById("contractAddress").value=deployedContract.address;
+      }
+    })
+
   },
 
   setStatus: function(message) {
