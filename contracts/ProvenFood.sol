@@ -9,13 +9,8 @@ contract ProvenFood {
     uint date;
     string name;
     uint historyLength;
-    mapping (uint => historyObject) history;
-  }
-
-
-  struct historyObject {
-    address holder;
-    uint timeStamp;
+    mapping (uint => address) history;
+    mapping (uint => uint256) timestamps;
   }
 
   mapping (string => food) foods;
@@ -23,13 +18,10 @@ contract ProvenFood {
   function newFood(uint _weight, uint _amount, string _name, string _uniqueID){
     
     foods[_uniqueID] = food(msg.sender, _amount, _weight, now, _name, 0);
-    
-    historyObject memory newObj;
-    newObj.holder = msg.sender;
-    newObj.timeStamp = now;
-
-    foods[_uniqueID].history[foods[_uniqueID].historyLength] = newObj;
+    foods[_uniqueID].history[foods[_uniqueID].historyLength] = msg.sender;
+    foods[_uniqueID].timestamps[foods[_uniqueID].historyLength] = now;
     foods[_uniqueID].historyLength++;
+    
   }
 
   function getOrigin(string _uniqueID) constant returns (address){
@@ -52,22 +44,23 @@ contract ProvenFood {
     return foods[_uniqueID].name;
   }
 
-  function getHistory(string _uniqueID) constant returns (address, uint){
-    //uint size = foods[_uniqueID].historyLength;
-    //address[] memory _history = new address[](size);
+  function getHistory(string _uniqueID) constant returns (address[],uint256[]){
+    uint size = foods[_uniqueID].historyLength;
+    address[] memory _history = new address[](size);
+    uint256[] memory _timestamps = new uint256[](size);
     
-    //for (uint i = 0; i < foods[_uniqueID].historyLength; i++) { 
-    //  _history[i] = foods[_uniqueID].history[i];
-    //}
-    return (foods[_uniqueID].history[0].holder,foods[_uniqueID].history[0].timeStamp);
+    for (uint i = 0; i < foods[_uniqueID].historyLength; i++) { 
+      _history[i] = foods[_uniqueID].history[i];
+      _timestamps[i] = foods[_uniqueID].timestamps[i];
+    }
+    return (_history,_timestamps);
   }
 
-  /* function moveFood(string _uniqueID, address _to){
-    uint historyIndex = foods[_uniqueID].historyLength - 1;
-    if(msg.sender == foods[_uniqueID].history[historyIndex]){
-      foods[_uniqueID].history[historyIndex + 1] = _to;
-      foods[_uniqueID].historyLength++;
-    }
-  } */
+  function signFood(string _uniqueID){
+    
+    foods[_uniqueID].history[foods[_uniqueID].historyLength] = msg.sender;
+    foods[_uniqueID].timestamps[foods[_uniqueID].historyLength] = now;
+    foods[_uniqueID].historyLength++;
+    
+  }
 }
-`
